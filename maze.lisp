@@ -20,12 +20,12 @@
   (setf (cell-links cell) (make-hash-table :test 'equal))
   cell)
 
-(defmethod link ((cell cell) &key to (bi nil))
+(defmethod link ((cell cell) &key to (bi t))
   (setf (gethash to (cell-links cell)) to)
   (when bi (link to :to cell :bi nil))
   cell)
 
-(defmethod unlink ((cell cell) &key from (bi nil))
+(defmethod unlink ((cell cell) &key from (bi t))
   (remhash from (cell-links cell))
   (when bi (unlink from :from cell :bi nil))
   cell)
@@ -33,6 +33,9 @@
 (defmethod links ((cell cell))
   (loop for link being the hash-keys of (cell-links cell)
         collect link))
+
+(defmethod linkedp ((cell cell) &key to)
+  (gethash to (cell-links cell)))
 
 (defmethod neighbors ((cell cell))
   (remove nil (list (north cell)
@@ -88,13 +91,22 @@
   (dotimes (row (grid-rows g))
     (dotimes (col (grid-cols g))
       (let ((cell (aref (grid g) row col)))
-        (setf (cell-row cell) row)
-        (setf (cell-col cell) col)
+        (initialize cell :row row :col col)
         (setf (north cell) (neighbor-at (1- row) col))
         (setf (south cell) (neighbor-at (1+ row) col))
         (setf (east  cell) (neighbor-at row (1+ col)))
         (setf (west  cell) (neighbor-at row (1- col)))))))
 
+(defun test-grid ()
+  (let ((g (make-instance 'maze-grid)))
+    (initialize g :rows 3 :cols 3)
+    (describe g)
+    (when t (map-vector #'describe (grid g)))
+    g))
+
+;;;=======;;;
+;;;Helpers;;;
+;;;=======;;;
 (defun map-vector (f array)
   (let* ((dims (array-dimensions array))
          (result (make-array dims)))
@@ -107,12 +119,10 @@
       (map-dim '() dims))
     result))
 
-(defun test-grid ()
-  (let ((g (make-instance 'maze-grid)))
-    (initialize g :rows 3 :cols 3)
-    (describe g)
-    (when t (map-vector #'describe (grid g)))
-    g))
+(defun sample (items)
+  (let ((len (length items)))
+    (unless (= len 0)
+      (elt items (random len)))))
 
 (test-cell)
 (test-grid)
