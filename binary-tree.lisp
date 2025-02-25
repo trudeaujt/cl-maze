@@ -17,14 +17,14 @@
                             collect (aref array i j))))
              (funcall fn row))))
 
-(defparameter *cell-width* 6)
+(defparameter *cell-width* 7)
 (defparameter *cell-height* 4)
 
 (defmethod render-maze ((maze maze-grid))
   (let* ((rows (grid-rows maze))
          (cols (grid-cols maze))
-         (out-rows (* rows *cell-height*))
-         (out-cols (* cols *cell-width*))
+         (out-rows (1+ (* rows *cell-height*)))
+         (out-cols (1+ (* cols *cell-width*)))
          (buffer (make-array (list out-rows out-cols)
                              :element-type 'character
                              :initial-element #\Space)))
@@ -33,27 +33,27 @@
       (setf (aref buffer 0 c) #\-))
     (dotimes (r out-rows)
       (setf (aref buffer r 0) #\|))
-    ;;Draw a wall or opening for each cell depending on its links
-    ;;TODO maybe need to shift the first cell down a row and increase the size of the output by one row
+    ;;Draw a wall or opening for each cell depending on its south/east links
+    ;;Since we've drawn the north and west walls first, shift base rows 1+
     (dotimes (r rows)
       (dotimes (c cols)
         (let* ((cell (aref (grid maze) r c))
-               (base-row (* r *cell-height*))
-               (base-col (* c *cell-width*)))
+               (base-row (1+ (* r *cell-height*)))
+               (base-col (1+ (* c *cell-width*))))
           ;;Draw cell south
           (dotimes (i *cell-width*)
             (setf (aref buffer (+ base-row (1- *cell-height*)) (+ base-col i)) 
                   (cond ((linkedp cell :to (south cell)) #\Space)
                         (t #\-))))
-          ;;Draw cell south
+          ;;Draw cell east
           (dotimes (i *cell-height*)
             (setf (aref buffer (+ base-row i) (+ base-col (- *cell-width* 1)))
                   (cond ((linkedp cell :to (east cell)) #\Space)
                         (t #\|)))))))
     ;;Draw cell corners
-    (dotimes (r rows)
-      (dotimes (c cols)
-       ; (setf (aref buffer (* *cell-height* r) (* *cell-width* c)) #\+)
+    (dotimes (r (1+ rows))
+      (dotimes (c (1+ cols))
+        (setf (aref buffer (* *cell-height* r) (* *cell-width* c)) #\+)
         ))
     ;;Print out the maze row-by-row
     (dotimes (row out-rows)
