@@ -2,7 +2,7 @@
 
 (defun binary-tree-maze ()
   (let ((g (make-instance 'maze-grid)))
-    (initialize g :rows 4 :cols 4)
+    (initialize g :rows 3 :cols 3)
     (map-vector (lambda (cell)
                   (let ((target (sample (remove nil (list (north cell)
                                                           (east cell))))))
@@ -33,24 +33,29 @@
       (setf (aref buffer 0 c) #\-))
     (dotimes (r out-rows)
       (setf (aref buffer r 0) #\|))
+    ;;Draw a wall or opening for each cell depending on its links
+    ;;TODO maybe need to shift the first cell down a row and increase the size of the output by one row
     (dotimes (r rows)
       (dotimes (c cols)
         (let* ((cell (aref (grid maze) r c))
                (base-row (* r *cell-height*))
                (base-col (* c *cell-width*)))
-          ;;Draw south walls
+          ;;Draw cell south
           (dotimes (i *cell-width*)
-            (setf (aref buffer (+ base-row (- *cell-height* 1)) (+ base-col i)) 
-                  (if (linkedp cell :to (south cell))
-                      #\Space
-                      #\-)))
-          ;;Draw east walls
+            (setf (aref buffer (+ base-row (1- *cell-height*)) (+ base-col i)) 
+                  (cond ((linkedp cell :to (south cell)) #\Space)
+                        (t #\-))))
+          ;;Draw cell south
           (dotimes (i *cell-height*)
             (setf (aref buffer (+ base-row i) (+ base-col (- *cell-width* 1)))
-                  (if (linkedp cell :to (east cell))
-                      #\Space
-                      #\|))))))
-    ;; Print out the buffer row by row.
+                  (cond ((linkedp cell :to (east cell)) #\Space)
+                        (t #\|)))))))
+    ;;Draw cell corners
+    (dotimes (r rows)
+      (dotimes (c cols)
+       ; (setf (aref buffer (* *cell-height* r) (* *cell-width* c)) #\+)
+        ))
+    ;;Print out the maze row-by-row
     (dotimes (row out-rows)
       (let ((line (coerce (row-major-collect buffer row) 'string)))
         (format t "~a~%" line)))))
