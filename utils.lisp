@@ -1,6 +1,6 @@
 (load "~/code/maze/maze.lisp")
 
-(defparameter *cell-width* 7)
+(defparameter *cell-width* 8)
 (defparameter *cell-height* 4)
 
 (defmethod render-maze ((maze maze-grid))
@@ -22,7 +22,13 @@
       (dotimes (c cols)
         (let* ((cell (aref (grid maze) r c))
                (base-row (1+ (* r *cell-height*)))
-               (base-col (1+ (* c *cell-width*))))
+               (base-col (1+ (* c *cell-width*)))
+               (dist (dist maze)))
+          ;;Draw distances
+          (setf (aref buffer 
+                      (+ base-row (floor *cell-height* 3))
+                      (+ base-col (ceiling *cell-width* 3)))
+                (base62-char (get-dist dist cell)))
           ;;Draw cell south
           (dotimes (i *cell-width*)
             (setf (aref buffer (+ base-row (1- *cell-height*)) (+ base-col i)) 
@@ -36,13 +42,14 @@
     ;;Draw cell corners
     (dotimes (r (1+ rows))
       (dotimes (c (1+ cols))
-        (setf (aref buffer (* *cell-height* r) (* *cell-width* c)) #\+)
-        ))
+        (setf (aref buffer (* *cell-height* r) (* *cell-width* c)) #\+)))
     ;;Print out the maze row-by-row
     (fresh-line)
     (dotimes (row out-rows)
       (let ((line (coerce (row-major-collect buffer row) 'string)))
         (format t "~a~%" line)))))
+
+(sidewinder-maze 16 13)
 
 (defun row-major-collect (buffer row)
   "Collects all characters in a given row from BUFFER."
@@ -51,6 +58,11 @@
     (dotimes (col cols)
       (setf (aref chars col) (aref buffer row col)))
     chars)) 
+
+(defun base62-char (n)
+  (let* ((digits "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+         (index (mod n (length digits))))
+    (aref digits index)))
 
 (defun for-each-row (fn array)
   (loop for i from 0 below (array-dimension array 0)
@@ -69,6 +81,12 @@
                      (map-dim (cons i indices) (rest remaining-dims))))))
       (map-dim '() dims))
     result))
+
+(defmacro mapv (f array)
+  `(let ((arr ,array))
+     (dotimes (i (array-dimension arr 0))
+       (funcall ,f (subarray arr (list i))))
+     arr))
 
 (defun sample (items)
   (let ((len (length items)))

@@ -43,13 +43,29 @@
                     (east  cell)
                     (west  cell))))
 
+(defmethod distances ((cell cell))
+  (let ((distances (make-instance 'path))
+        (frontier (list cell)))
+    (init-path distances cell)
+    (loop while frontier
+          do (let ((new-frontier '()))
+                (dolist (cell frontier)
+                  (dolist (linked (links cell))
+                    (unless (get-dist distances linked)
+                      (set-dist distances linked 
+                                (1+ (get-dist distances cell)))
+                      (push linked new-frontier))))
+                (setf frontier new-frontier)))
+    distances))
+
 ;;;=================;;;
 ;;;Maze grid section;;;
 ;;;=================;;;
 (defclass maze-grid ()
   ((rows :accessor grid-rows)
    (cols :accessor grid-cols)
-   (grid :accessor grid)))
+   (grid :accessor grid)
+   (dist :accessor dist)))
 
 (defmethod print-object ((g maze-grid) out)
   (print-unreadable-object (g out :type t)
@@ -84,7 +100,40 @@
         (setf (east  cell) (neighbor-at row (1+ col)))
         (setf (west  cell) (neighbor-at row (1- col)))))))
 
-;;;Test
+(defmethod calculate-distances ((g maze-grid))
+  (let ((path (make-instance 'path))
+        (root (aref (grid g) 0 0)))
+    (init-path path root)
+    (setf (dist g) (distances root))))
+
+;;;================;;;
+;;;Distance section;;;
+;;;================;;;
+(defclass path ()
+  ((root  :accessor root)
+   (cells :accessor cells :initform (make-hash-table :test #'equal))))
+
+(defmethod init-path ((p path) root)
+  (setf (gethash root (cells p)) 0))
+
+(defmethod get-dist ((p path) cell)
+  (gethash cell (cells p)))
+
+(defmethod set-dist ((p path) cell distance)
+  (setf (gethash cell (cells p)) distance))
+
+(defmethod get-cells-in-path ((p path))
+  (loop for key being the hash-keys of (cells p)
+        collect key))
+
+(defmethod render-path ((p path))
+  (maphash (lambda (key value)
+             (format t "~A: ~A~%" key value))
+           (cells p)))
+
+;;;============;;;
+;;;Test section;;;
+;;;============;;;
 (defun test-cell ()
   (let ((c1 (make-instance 'cell))
         (c2 (make-instance 'cell))
@@ -97,6 +146,21 @@
     (format t "Links for c1:~A~%Links for c2:~A~%Links for c3:~A~%" (links c1) (links c2) (links c3))
     (mapcar #'describe (links c2))))
 
+(defun teset-path ()
+  (let ((c1 (make-instance 'cell))
+        (c2 (make-instance 'cell))
+        (c3 (make-instance 'cell))
+        (c4 (make-instance 'cell)))
+    (initialize c1 :row 0 :col 0)
+    (initialize c2 :row 1 :col 0)
+    (initialize c3 :row 0 :col 1)
+    (initialize c4 :row 0 :col 2)
+    (link c1 :bi t :to c2)
+    (link c1 :bi t :to c3)
+    (link c4 :bi t :to c3)
+    (format t "Links for c1:~A~%Links for c2:~A~%Links for c3:~A~%Links for c4:~A~%" (links c1) (links c2) (links c3) (links c4))
+    (distances c1)))
+
 (defun test-grid ()
   (let ((g (make-instance 'maze-grid)))
     (initialize g :rows 3 :cols 3)
@@ -107,4 +171,5 @@
 (when nil
   (progn 
     (test-cell)
-    (test-grid)))
+    (test-grid)
+    (test-djikstra)))

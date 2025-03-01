@@ -1,4 +1,3 @@
-
 (load "~/code/maze/maze.lisp")
 (load "~/code/maze/utils.lisp")
 
@@ -22,6 +21,7 @@
                                 )) 
                         row))) 
                   (grid g))
+    (calculate-distances g)
     g))
 
-(sidewinder-maze 15 15)
+(sidewinder-maze 4 4)
