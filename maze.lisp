@@ -1,14 +1,17 @@
-;;;============;;;
-;;;Cell section;;;
-;;;============;;;
+(load "utils.lisp")
+
+;;;====;;;
+;;;Cell;;;
+;;;====;;;
 (defclass cell ()
-  ((row    :accessor cell-row :initform nil)
-   (col    :accessor cell-col :initform nil)
-   (clinks :accessor cell-links)
-   (north  :accessor north    :initform nil)
-   (south  :accessor south    :initform nil)
-   (east   :accessor east     :initform nil)
-   (west   :accessor west     :initform nil)))
+  ;;A representation of an individual cell. Links to other cells to form passageways.
+  ((row    :accessor cell-row   :initform nil)
+   (col    :accessor cell-col   :initform nil)
+   (clinks :accessor cell-links :initform (make-hash-table :test 'equal))
+   (north  :accessor north      :initform nil)
+   (south  :accessor south      :initform nil)
+   (east   :accessor east       :initform nil)
+   (west   :accessor west       :initform nil)))
 
 (defmethod print-object ((cell cell) out)
   (print-unreadable-object (cell out :type t)
@@ -17,7 +20,6 @@
 (defmethod initialize ((cell cell) &key row col)
   (setf (cell-row cell) row)
   (setf (cell-col cell) col)
-  (setf (cell-links cell) (make-hash-table :test 'equal))
   cell)
 
 (defmethod link ((cell cell) &key to (bi t))
@@ -44,6 +46,7 @@
                     (west  cell))))
 
 (defmethod distances ((cell cell))
+  ;;Traverse the maze calculating the distances from a cell.
   (let ((distances (make-instance 'path))
         (frontier (list cell)))
     (init-path distances cell)
@@ -58,10 +61,11 @@
                 (setf frontier new-frontier)))
     distances))
 
-;;;=================;;;
-;;;Maze grid section;;;
-;;;=================;;;
+;;;====;;;
+;;;Maze;;;
+;;;====;;;
 (defclass maze-grid ()
+  ;;A representation of the grid on which cells live.
   ((rows :accessor grid-rows)
    (cols :accessor grid-cols)
    (grid :accessor grid)
@@ -85,6 +89,7 @@
       (setf (aref (grid g) i j) (make-instance 'cell)))))
 
 (defmethod configure-cells ((g maze-grid))
+  ;;Places cells in the grid and sets their neighbors.
   (defun neighbor-at (row col)
     (when (and (>= row 0)
                (>= col 0)
@@ -106,9 +111,58 @@
     (init-path path root)
     (setf (dist g) (distances root))))
 
-;;;================;;;
-;;;Distance section;;;
-;;;================;;;
+(defparameter *cell-width* 8)
+(defparameter *cell-height* 4)
+
+(defmethod render-maze ((maze maze-grid))
+  (let* ((rows (grid-rows maze))
+         (cols (grid-cols maze))
+         (out-rows (1+ (* rows *cell-height*)))
+         (out-cols (1+ (* cols *cell-width*)))
+         (buffer (make-array (list out-rows out-cols)
+                             :element-type 'character
+                             :initial-element #\Space)))
+    ;;Draw outside walls
+    (dotimes (c out-cols)
+      (setf (aref buffer 0 c) #\-))
+    (dotimes (r out-rows)
+      (setf (aref buffer r 0) #\|))
+    ;;Draw a wall or opening for each cell depending on its south/east links
+    ;;Since we've drawn the north and west walls first, shift base rows 1+
+    (dotimes (r rows)
+      (dotimes (c cols)
+        (let* ((cell (aref (grid maze) r c))
+               (base-row (1+ (* r *cell-height*)))
+               (base-col (1+ (* c *cell-width*)))
+               (dist (dist maze)))
+          ;;Draw distances
+          (setf (aref buffer 
+                      (+ base-row (floor *cell-height* 3))
+                      (+ base-col (ceiling *cell-width* 3)))
+                (base62-char (get-dist dist cell)))
+          ;;Draw cell south
+          (dotimes (i *cell-width*)
+            (setf (aref buffer (+ base-row (1- *cell-height*)) (+ base-col i)) 
+                  (cond ((linkedp cell :to (south cell)) #\Space)
+                        (t #\-))))
+          ;;Draw cell east
+          (dotimes (i *cell-height*)
+            (setf (aref buffer (+ base-row i) (+ base-col (- *cell-width* 1)))
+                  (cond ((linkedp cell :to (east cell)) #\Space)
+                        (t #\|)))))))
+    ;;Draw cell corners
+    (dotimes (r (1+ rows))
+      (dotimes (c (1+ cols))
+        (setf (aref buffer (* *cell-height* r) (* *cell-width* c)) #\+)))
+    ;;Print out the maze row-by-row
+    (fresh-line)
+    (dotimes (row out-rows)
+      (let ((line (coerce (row-major-collect buffer row) 'string)))
+        (format t "~a~%" line)))))
+
+;;;===========;;;
+;;;Pathfinding;;;
+;;;===========;;;
 (defclass path ()
   ((root  :accessor root)
    (cells :accessor cells :initform (make-hash-table :test #'equal))))
@@ -131,9 +185,9 @@
              (format t "~A: ~A~%" key value))
            (cells p)))
 
-;;;============;;;
-;;;Test section;;;
-;;;============;;;
+;;;=====;;;
+;;;Tests;;;
+;;;=====;;;
 (defun test-cell ()
   (let ((c1 (make-instance 'cell))
         (c2 (make-instance 'cell))

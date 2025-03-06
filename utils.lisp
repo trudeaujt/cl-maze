@@ -1,55 +1,7 @@
-(load "~/code/maze/maze.lisp")
-
-(defparameter *cell-width* 8)
-(defparameter *cell-height* 4)
-
-(defmethod render-maze ((maze maze-grid))
-  (let* ((rows (grid-rows maze))
-         (cols (grid-cols maze))
-         (out-rows (1+ (* rows *cell-height*)))
-         (out-cols (1+ (* cols *cell-width*)))
-         (buffer (make-array (list out-rows out-cols)
-                             :element-type 'character
-                             :initial-element #\Space)))
-    ;;Draw outside walls
-    (dotimes (c out-cols)
-      (setf (aref buffer 0 c) #\-))
-    (dotimes (r out-rows)
-      (setf (aref buffer r 0) #\|))
-    ;;Draw a wall or opening for each cell depending on its south/east links
-    ;;Since we've drawn the north and west walls first, shift base rows 1+
-    (dotimes (r rows)
-      (dotimes (c cols)
-        (let* ((cell (aref (grid maze) r c))
-               (base-row (1+ (* r *cell-height*)))
-               (base-col (1+ (* c *cell-width*)))
-               (dist (dist maze)))
-          ;;Draw distances
-          (setf (aref buffer 
-                      (+ base-row (floor *cell-height* 3))
-                      (+ base-col (ceiling *cell-width* 3)))
-                (base62-char (get-dist dist cell)))
-          ;;Draw cell south
-          (dotimes (i *cell-width*)
-            (setf (aref buffer (+ base-row (1- *cell-height*)) (+ base-col i)) 
-                  (cond ((linkedp cell :to (south cell)) #\Space)
-                        (t #\-))))
-          ;;Draw cell east
-          (dotimes (i *cell-height*)
-            (setf (aref buffer (+ base-row i) (+ base-col (- *cell-width* 1)))
-                  (cond ((linkedp cell :to (east cell)) #\Space)
-                        (t #\|)))))))
-    ;;Draw cell corners
-    (dotimes (r (1+ rows))
-      (dotimes (c (1+ cols))
-        (setf (aref buffer (* *cell-height* r) (* *cell-width* c)) #\+)))
-    ;;Print out the maze row-by-row
-    (fresh-line)
-    (dotimes (row out-rows)
-      (let ((line (coerce (row-major-collect buffer row) 'string)))
-        (format t "~a~%" line)))))
-
-(sidewinder-maze 16 13)
+(defun base62-char (n)
+  (let* ((digits "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+         (index (mod n (length digits))))
+    (aref digits index)))
 
 (defun row-major-collect (buffer row)
   "Collects all characters in a given row from BUFFER."
@@ -58,17 +10,6 @@
     (dotimes (col cols)
       (setf (aref chars col) (aref buffer row col)))
     chars)) 
-
-(defun base62-char (n)
-  (let* ((digits "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-         (index (mod n (length digits))))
-    (aref digits index)))
-
-(defun for-each-row (fn array)
-  (loop for i from 0 below (array-dimension array 0)
-        do (let ((row (loop for j from 0 below (array-dimension array 1)
-                            collect (aref array i j))))
-             (funcall fn row))))
 
 (defun map-vector (f array)
   (let* ((dims (array-dimensions array))
@@ -87,6 +28,12 @@
      (dotimes (i (array-dimension arr 0))
        (funcall ,f (subarray arr (list i))))
      arr))
+
+(defun for-each-row (fn array)
+  (loop for i from 0 below (array-dimension array 0)
+        do (let ((row (loop for j from 0 below (array-dimension array 1)
+                            collect (aref array i j))))
+             (funcall fn row))))
 
 (defun sample (items)
   (let ((len (length items)))

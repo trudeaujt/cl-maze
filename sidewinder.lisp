@@ -1,5 +1,4 @@
 (load "~/code/maze/maze.lisp")
-(load "~/code/maze/utils.lisp")
 
 (defun sidewinder-maze (&optional (rows 4) (cols 4))
   (let ((g (make-instance 'maze-grid)))
