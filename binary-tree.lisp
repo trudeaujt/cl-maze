@@ -1,5 +1,4 @@
 (load "~/code/maze/maze.lisp")
-(load "~/code/maze/utils.lisp")
 
 (defun binary-tree-maze (&optional (rows 15) (cols 15))
   (let ((g (make-instance 'maze-grid)))

@@ -1,0 +1,17 @@
+(load "~/code/maze/maze.lisp")
+
+(defun aldous-broder (&optional (rows 4) (cols 4))
+  (let ((g (make-instance 'maze-grid)))
+    (initialize g :rows rows :cols cols)
+    (let ((cell (sample-grid g))
+          (unvisited (1- (* (grid-rows g) (grid-cols g)))))
+      (loop while (< 0 unvisited)
+            do (let ((neighbor (sample-neighbor cell)))
+                 (when (null (links neighbor))
+                   (progn (link cell :to neighbor) 
+                          (decf unvisited)))
+                 (setf cell neighbor))))
+    (calculate-distances g)
+    g))
+
+(aldous-broder 12 12)

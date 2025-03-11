@@ -1,4 +1,4 @@
-(load "utils.lisp")
+(load "~/code/maze/utils.lisp")
 
 ;;;====;;;
 ;;;Cell;;;
@@ -44,6 +44,9 @@
                     (south cell)
                     (east  cell)
                     (west  cell))))
+
+(defmethod sample-neighbor ((cell cell))
+  (sample (neighbors cell)))
 
 (defmethod distances ((cell cell))
   ;;Traverse the maze calculating the distances from a cell.
@@ -104,6 +107,9 @@
         (setf (south cell) (neighbor-at (1+ row) col))
         (setf (east  cell) (neighbor-at row (1+ col)))
         (setf (west  cell) (neighbor-at row (1- col)))))))
+
+(defmethod sample-grid ((g maze-grid))
+  (aref (grid g) (random (grid-rows g)) (random (grid-cols g))))
 
 (defmethod calculate-distances ((g maze-grid))
   (let ((path (make-instance 'path))
@@ -191,14 +197,19 @@
 (defun test-cell ()
   (let ((c1 (make-instance 'cell))
         (c2 (make-instance 'cell))
-        (c3 (make-instance 'cell)))
+        (c3 (make-instance 'cell))
+        (c4 (make-instance 'cell)))
     (initialize c1 :row 5 :col 1)
     (initialize c2 :row 5 :col 2)
     (initialize c3 :row 5 :col 3)
+    (initialize c4 :row 5 :col 4)
+    (format t "Links for c4: ~A~%" (links c4))
     (link c1 :bi t :to c2)
     (link c2 :bi t :to c3)
     (format t "Links for c1:~A~%Links for c2:~A~%Links for c3:~A~%" (links c1) (links c2) (links c3))
     (mapcar #'describe (links c2))))
+
+(test-cell)
 
 (defun teset-path ()
   (let ((c1 (make-instance 'cell))

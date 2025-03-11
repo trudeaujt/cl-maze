@@ -23,4 +23,4 @@
     (calculate-distances g)
     g))
 
-(sidewinder-maze 4 4)
+(sidewinder-maze 14 14 )

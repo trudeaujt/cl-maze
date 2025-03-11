@@ -1,6 +1,8 @@
 (defun base62-char (n)
   (let* ((digits "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-         (index (mod n (length digits))))
+         (index (if n 
+                    (mod n (length digits))
+                    0)))
     (aref digits index)))
 
 (defun row-major-collect (buffer row)
