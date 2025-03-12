@@ -72,7 +72,7 @@
   ((rows :accessor grid-rows)
    (cols :accessor grid-cols)
    (grid :accessor grid)
-   (dist :accessor dist)))
+   (dist :accessor dist :initform nil)))
 
 (defmethod print-object ((g maze-grid) out)
   (print-unreadable-object (g out :type t)
@@ -142,10 +142,11 @@
                (base-col (1+ (* c *cell-width*)))
                (dist (dist maze)))
           ;;Draw distances
-          (setf (aref buffer 
-                      (+ base-row (floor *cell-height* 3))
-                      (+ base-col (ceiling *cell-width* 3)))
-                (base62-char (get-dist dist cell)))
+          (when dist 
+            (setf (aref buffer 
+                        (+ base-row (floor *cell-height* 3))
+                        (+ base-col (ceiling *cell-width* 3)))
+                  (base62-char (get-dist dist cell))))
           ;;Draw cell south
           (dotimes (i *cell-width*)
             (setf (aref buffer (+ base-row (1- *cell-height*)) (+ base-col i)) 
